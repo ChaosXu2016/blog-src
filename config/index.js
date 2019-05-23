@@ -5,7 +5,7 @@ module.exports = {
     remote: 'https://github.com/ChaosXu2016/blog.git'
   },
   base: '/blog/',
-  title: 'xxx的博客',
+  title: '胖吵吵的博客',
   description: '这是说明这是说明～～～',
   dest: './dist/',
   themeConfig: {
