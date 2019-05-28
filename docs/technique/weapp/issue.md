@@ -7,6 +7,42 @@
 所以尽可能的了解小程序的特点，可以让我们在评审需求的阶段把一些不合理的和设计和产品沟通，尽可能的减少代码中的hack
 :::  
 
+## 下拉刷新
+
+### 自定义的下拉刷新
+微信自带的下拉刷新需要在配置中开启：  
+1. 配置 `app.json` 中的 `window`或者单个页面的`json`文件  
+
+|          属性          |  类型    | 默认值   | 描述
+|-----------------------|----------|---------|------
+| backgroundTextStyle   | string   | dark    | 下拉 loading 的样式，仅支持 dark / light
+| enablePullDownRefresh | boolean  | false   | true 开启 false关闭
+
+2. 页面中通过`onPullDownRefresh`方法监听下拉动作  
+
+```javascript
+  onPullDownRefresh() {
+    setTimeout(() => {
+      wx.stopPullDownRefresh()
+    }, 1000)
+  }
+```  
+::: warning
+这里有个要注意的问题：  
+在`onPullDownRefresh`中不能调用`wx.startPullDownRefresh()`，否则会死循环
+:::  
+
+自定义的下拉刷新，目前只支持整个页面的下拉刷新，对于局部的下拉刷新，就没有办法了：  
+
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <p style="font-size: 14px;">局部的下拉刷新</p>
+    <img :src="$withBase('/imgs/custom_refresh.jpeg')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
+
+这种我们可以使用自定义下拉刷新的方式来实现。具体方式也就不赘述了。
+
 ## 关于自定义顶部`navigationBar`  
 
 小程序自带的`navigationBar`仅可以在`json`文件中配置。提供的可配置项也是少的可怜。主要如下：  
@@ -27,9 +63,20 @@
 
 不同于`web`开发，小程序和`app`对于下拉刷新的需求非常的多，也算是基本功能之一，小程序本身也自带下拉刷新。我们只需将`window.enablePullDownRefresh`设置为`true`，然后在页面监听`onPullDownRefresh`即可。  
 
-但是当我们用到自定义`navigationBar`的时候，会发现，本来`fixed`定位在顶端的`navigationBar`会被一起拉下来。。。  
+但是当我们用到自定义`navigationBar`的时候，会发现，本来`fixed`定位在顶端的`navigationBar`会被一起拉下来。
 
-这时候我们就不得不去自己实现了
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <p style="font-size: 14px;">系统自带的navigationBar的下拉刷新</p>
+    <img :src="$withBase('/imgs/navigation_default_pull_down.png')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+  <div>
+    <p style="font-size: 14px;">自定义navigationBar的下拉刷新</p>
+    <img :src="$withBase('/imgs/navigation_custom_pull_down.png')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
+  
+这个时候我们就必须要使用自定义的下拉刷新。关于自定义的下拉刷新的实现原理这里就不多说了。但是实现起来在真机中发现，`android`手机会有明显的卡顿。
 
 ### 层级问题  
 
@@ -37,9 +84,20 @@
 
 但是小程序中有种概念叫做：[原生组件](https://developers.weixin.qq.com/miniprogram/dev/component/native-component.html)  
 
-这些组件包括`camera`，`canvas`，`input`（仅在focus时表现为原生组件），`map`，`textarea`，`video`，`live-player`，`live-pusher`
+这些组件包括`camera`，`canvas`，`input`（仅在focus时表现为原生组件），`map`，`textarea`，`video`，`live-player`，`live-pusher`  
 
 这种组件脱离于WebView渲染流程之外，层级也是最高的，因此无论`z-index`设置多大，都无法覆盖原生组件。  
+
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <p style="font-size: 14px;">系统自带的navigationBar</p>
+    <img :src="$withBase('/imgs/navigation_default_textarea.png')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+  <div>
+    <p style="font-size: 14px;">自定义navigationBar</p>
+    <img :src="$withBase('/imgs/navigation_custom_textarea.png')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
   
 虽然理论上我们可以用`cover-view`和`cover-image`来实现自定义的`navigationBar`，但是个人觉得还是尽量避免使用自定义的`navigationBar`。
 
@@ -51,10 +109,114 @@
 
 ### 键盘弹起时会将顶部导航栏顶上去
 
-这个是针对`textarea`组件
+这个是针对`textarea`组件在页面底部的时候，准确来说是`textarea`组件距离底部的距离没有键盘高的时候。在键盘弹起时造成了整个页面上移，从而导致了导航栏会移到页面外。
+
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <p style="font-size: 14px;">当键盘未弹起时</p>
+    <img :src="$withBase('/imgs/navigation_custom_no_focu.jpeg')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+  <div>
+    <p style="font-size: 14px;">当键盘弹起时</p>
+    <img :src="$withBase('/imgs/navigation_custom_focu.jpeg')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
+
+当然这个不算是硬伤，毕竟出现的条件有限，我们可以在设计上尽量避免将`textarea`放到底部来避免这个坑。
 
 ## 自定义底部`tabbar`  
 
-### 谈谈实现方式
+### 自定义的`tabbar`  
+
+在说自定义之前先看看小程序自带的`tabbar`可以做到什么程度。  
+  
+自定义的`tabbar`是在`app.json`中配置的，在`tabBar`下：  
+
++ 基本配置  
+
+|    属性          | 类型     | 描述
+|-----------------|----------|--------------
+| color           | HexColor | tab 上的文字默认颜色，仅支持十六进制颜色	
+| selectedColor   | HexColor | tab 上的文字选中时的颜色，仅支持十六进制颜色	
+| backgroundColor | HexColor | tab 的背景色，仅支持十六进制颜色	
+| borderStyle     | string   | tabbar上边框的颜色， 仅支持 black / white	
+| list            | Array    | tab 的列表，详见 list 属性说明，最少2个、最多5个 tab	
+| position        | string   | tabBar的位置，仅支持 bottom / top	
+| custom          | boolean  | 自定义 tabBar，见详情
+
++ `list`选项配置
+
+|    属性           | 类型   | 描述
+|------------------|--------|--------------
+| pagePath         | string | 页面路径，必须在 pages 中先定义
+| text             | string | tab 上按钮文字
+| iconPath         | string | 图片路径，icon 大小限制为40kb，建议尺寸为 81px * 81px，不支持网络图片。当 position 为 top 时，不显示 icon。
+| selectedIconPath | string | 选中时的图片路径，icon 大小限制为40kb，建议尺寸为 81px * 81px，不支持网络图片。当 position 为 top 时，不显示 icon。
+
+所以从上面我们可以看到，我们可以定义`tabbar`的选中和未选中图标和字体颜色。没办法加入别的样式和嵌入别的自定义点击事件。
+
+### 自定义的几种实现方式  
+
+1. 组件形式  
+
+这是比较老的版本的形式。在需要`tabbar`的页面嵌入`tabbar`组件。这是最简单的实现方式。但是在首次切换的时候，会有很明显的闪屏。
+
+2. 官网提供的[customer-tab-bar](https://developers.weixin.qq.com/miniprogram/dev/framework/ability/custom-tabbar.html)的形式  
+
+这个比第一种要好点，也是我在项目中用到的一种模式，但是切换的时候也有稍微的闪屏  
+
+3. 伪`tabbar`的形势  
+
+这种实现方式稍微复杂，也就是将首页的几个页面作为组件传入，通过路由控制页面切换。  
+  
+之所以叫伪`tabbar`的形势，是因为这个只是表面上是`tabbar`。  
+
+理论上这种方式实现的在切换的时候可以做到不闪屏。但是会不会带来别的问题呢？  
+
+比如说返回的时候会不会造成页面错乱？  
+原本的页面生命周期和组件的生命周期略有不同，会不会造成一些坑？  
+还有个几乎可以肯定的问题，就是如果不使用`cover-view`的话，我们就没法盖住原生组件。
+
+不过好在小程序组件和页面之间的切换很方便，特别是在用`Taro`之后，组件和页面的区分仅仅只是是否在`app.tsx`中注册。所以第二和第三种实现方式切换起来并不是很麻烦。但是目前看来的话第二种实现方式体验还算满意，因此也没有必要切换到第三种方式。  
+
+## 关于弹窗  
+
+额，其实我说的这三个，几乎可以总结出一个问题，那就是小程序中让人吐血的层级问题。  
+
+其实不论是弹窗还是`navigation`还是`tabbar`他们都有一个特点，就是定位在页面的某一个位置，还有层级要足够高，要能够覆盖住底层元素。  
+
+官方没有专门的弹窗容器（我觉得应该有一个弹窗容器）因此只能靠我们自己写了。但是因为`cover-view`令人蛋疼的样式支持度，个人觉得仅仅用`cover-view`和`cover-image`来实现一个定制化的弹窗几乎不可能。  
+
+如果不用`cover-view`你会发现很多常用的组件都是骑在你脸上，而你毫无办法的。  
+
+因此个人建议，在有原生组件的页面上，尽量避免弹层的出现。  
+
+如果是在无法妥协，那也建议弹窗组件分两块来写，一种专门用`cover-view`和`cover-image`来写，并且一定要写`z-index`来控制层级，理论上是后面的元素会覆盖在上一个元素上面，但是还是要防止有些组件在操作的过程中重新渲染，而改变原有的层级。而对于页面中没有原生组件的，可以用`view`来写，这样样式上就自由很多。  
 
 
+## 关于html2wxml  
+
+关于富文本的渲染。现在基本的做法都是先把`html`解析为节点信息，然后再通过模板渲染为`wxml`。但是因为小程序模板不支持递归调用。所以在很多第三方组件中都出现以下的代码：  
+
+```html
+<!--temp0-->
+<template>
+...
+  <template is="temp1"></template>
+</template>
+<!--temp1-->
+<template>
+...
+  <template is="temp2"></template>
+</template>
+<!--temp2-->
+<template>
+...
+  <template is="temp3"></template>
+</template>
+...
+```  
+
+通常这种代码会出现十几到二十几个，也就是说最多支持嵌套二十多层。如果不够的话就得自己加了。我就遇到过一个富文本，足足嵌套到了两百多层。我复制到一百的时候实在受不了了，写了一个模板生成器来完成。  
+
+网上有人说这种代码看起来蠢哭了。的确，但是也很无奈。
