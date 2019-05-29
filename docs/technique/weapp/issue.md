@@ -220,3 +220,45 @@
 通常这种代码会出现十几到二十几个，也就是说最多支持嵌套二十多层。如果不够的话就得自己加了。我就遇到过一个富文本，足足嵌套到了两百多层。我复制到一百的时候实在受不了了，写了一个模板生成器来完成。  
 
 网上有人说这种代码看起来蠢哭了。的确，但是也很无奈。
+
+## 时间格式化问题
+
+这个不能说是小程序的坑，应该说是ios和android对`new Date()`处理上的差异。我们可以用`safari`浏览器和`chrome`来复现这两种差异  
+
+我们公司前后端交互用的时间格式是`YYYY-MM-DDTHH:mm:ss`。这种格式的时间字符串用`new Date()`来处理，在`safari`和`chrome`的表现如下：  
+
+```javascript
+new Date('2019-05-29T14:00:00')
+// safari Wed May 29 2019 22:00:00 GMT+0800 (CST) = $2
+// chrome Wed May 29 2019 14:00:00 GMT+0800 (中国标准时间)
+```  
+
+`safari`是比`chrome`要早8小时的，这是因为`chrome`认为这个时间是本地时间，而`safari`认为是国际标准时间，所以会有这样的8小时差异（仅限于中国）。  
+
+因此在调用`new Date()`之前我们需要把`YYYY-MM-DDTHH:mm:ss`格式的转换为`YYYY/MM/DD HH:mm:ss`这种格式的字符串。  
+
+此外，我在处理的过程中还发现带毫秒数的事件字符串`2019-05-29T14:00:00.000`，这种的还需要将毫秒数去掉变成这种格式`2019/05/29 14:00:00`。然后在`ios`和`android`上表现也就一致了。
+
+```javascript
+function getDate(date: any) {
+  if(typeof date === 'string') {
+    return new Date(date.replace('T', ' ').replace(/\-/g, '/').split('.')[0])
+  }
+  return new Date(date)
+}
+```  
+
+## 字体  
+
+小程序在`android`下，字体的`font-weight`必须要设置到`700`及以上才会变粗，或者统一使用`bold`  
+
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <p style="font-size: 14px;">ios</p>
+    <img :src="$withBase('/imgs/font-weight-ios.jpeg')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+  <div>
+    <p style="font-size: 14px;">android</p>
+    <img :src="$withBase('/imgs/font-weight-android.jpeg')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
