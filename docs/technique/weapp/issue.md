@@ -270,3 +270,60 @@ function getDate(date: any) {
 好在官方提供了分包方式。具体可以参照[官方文档](https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages.html)。  
 
 就一点：**对于副包内引用的，较大的包，应该包含在分包的文件夹内部。不然仍然会打包在主包内部**
+
+## 关于`px`和`rpx`  
+
+### 不能无脑的全站用`rpx`来做适配
+最近在做一个需求，觉得有个点还是需要注意的，特此记录一下。  
+
+这个需求就是一个简单的消息轮播。如下图：  
+
+<div style="width: 100%;font-size: 0;padding: 20px;background: #eee;border-radius: 3px;margin-top: 15px;display: flex;justify-content: space-around;flex-wrap: wrap;box-sizing: border-box;">
+  <div>
+    <img :src="$withBase('/imgs/rpx-px1.png')" style="width: 250px; margin: auto;display: block;" alt="foo">
+  </div>
+</div>  
+
+就是红框区域的一个向下无限滚动轮播，时间间隔为`2s`。我是使用`translateY`来实现的。每次`translateY`的高度和消息块的高度相同。  
+
+但是在滚动的过程中，发现在某些机型上面每次滚动都会有细微的偏移，而在某些机型上面正常。  
+
+消息显示窗口的高度和每个消息的高度都是`80rpx`。代码如下：  
+
+```jsx
+<View className="notice-pannel" style={{transform: `translateY(${curIndex * -80}rpx)`, transition}}>
+{
+  list.map(item => (
+    <View className="notice-item" key={item.id}>
+      <Image className="notice-avatar" src={item.actor.avatar_url}></Image>
+      <Text className="notice-desc">{`${item.actor.login} ${item.payload.action} ${item.repo.name} at ${new DateX(item.created_at).format()}`}</Text>
+    </View>
+  ))
+}
+</View>
+```  
+
+最后定位问题的原因是因为部分屏幕宽度在换算`rpx`的时候会有误差，导致每次`translateY`的时候会有一个小误差。  
+
+`rpx`根据官方文档的定义是：rpx（responsive pixel）: 可以根据屏幕宽度进行自适应。规定屏幕宽为750rpx。  
+
+因此，会有些屏幕宽度在rpx转px的时候会有除不尽的时候，这时候往往会有四舍五入取整的情况。  
+
+在看这行代码`${curIndex * -80}rpx)`，假设我们的设备的屏幕宽度为`412`这时候`80rpx`专成`px`的时候是`43.946666666666665px`。开发者工具上会发现，实际上是换算成了`43`，也就是每个消息块的高度是`43px`。  
+
+当`curIndex`为`2`的时候，实际上我们应该偏移`43 * 2`也就是`86px`，可是如果是直接用`rpx`的话，我们发现会是`87px`。这时候就产生了偏移了。  
+
+知道原因的话解决方案也有了，就是用`px`做单位就可以了  
+
+```jsx
+<View className="notice-pannel" style={{transform: `translateY(${curIndex * rpx2px(-80)}rpx)`, transition}}>
+{
+  list.map(item => (
+    <View className="notice-item" key={item.id}>
+      <Image className="notice-avatar" src={item.actor.avatar_url}></Image>
+      <Text className="notice-desc">{`${item.actor.login} ${item.payload.action} ${item.repo.name} at ${new DateX(item.created_at).format()}`}</Text>
+    </View>
+  ))
+}
+</View>
+```  
